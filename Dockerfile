@@ -1,13 +1,55 @@
+# ── Stage 1: Сборка фронтенда (Vite) ──────────────────────────────────────────
+FROM node:22-alpine AS frontend-builder
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY resources resources
+COPY vite.config.js tailwind.config.js postcss.config.js ./
+RUN npm run build
+
+# ── Stage 2: Установка PHP-зависимостей (Composer) ────────────────────────────
+FROM composer:2.8 AS composer-builder
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist \
+    --ignore-platform-reqs
+
+COPY app app
+COPY bootstrap bootstrap
+COPY config config
+COPY database database
+COPY routes routes
+COPY artisan ./
+RUN composer dump-autoload --optimize --no-dev --no-interaction
+
+# ── Stage 3: Production Runtime (PHP-FPM 8.4 Alpine) ──────────────────────────
 FROM php:8.4-fpm-alpine
 
-# ── Системные зависимости ─────────────────────────────────────────────────────
+WORKDIR /var/www/html
+
+# Системные runtime-библиотеки
 RUN apk add --no-cache \
     bash \
     curl \
-    git \
-    autoconf \
-    make \
-    g++ \
+    libpng \
+    libjpeg-turbo \
+    libwebp \
+    libzip \
+    oniguruma \
+    icu-libs \
+    freetype
+
+# Временные сборочные зависимости для компиляции PHP-расширений
+RUN apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
     libpng-dev \
     libjpeg-turbo-dev \
     libwebp-dev \
@@ -15,13 +57,9 @@ RUN apk add --no-cache \
     oniguruma-dev \
     icu-dev \
     freetype-dev \
-    nodejs \
-    npm \
-    supervisor
-
-# ── PHP-расширения ────────────────────────────────────────────────────────────
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install \
+    linux-headers \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j$(nproc) \
         pdo \
         pdo_mysql \
         mbstring \
@@ -31,39 +69,37 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         gd \
         zip \
         intl \
-        opcache
+        opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps \
+    && rm -rf /tmp/pear
 
-# ── Redis extension ───────────────────────────────────────────────────────────
-RUN pecl install redis && docker-php-ext-enable redis
+# Конфигурация PHP
+COPY docker/php/local.ini /usr/local/etc/php/conf.d/local.ini
 
-# ── Composer ──────────────────────────────────────────────────────────────────
+# Копируем Composer CLI
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www/html
-
-# ── PHP-зависимости (слой кэшируется если composer.json не менялся) ───────────
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
-
-# ── Node-зависимости (слой кэшируется если package.json не менялся) ──────────
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# ── Копируем остальные файлы приложения ───────────────────────────────────────
+# Копируем исходный код приложения
 COPY . .
 
-# ── Финальная сборка Composer (post-install scripts) ─────────────────────────
-RUN composer run-script post-autoload-dump --no-interaction 2>/dev/null || true
+# Копируем оптимизированный vendor из Stage 2
+COPY --from=composer-builder /app/vendor ./vendor
 
-# ── Сборка фронтенда ──────────────────────────────────────────────────────────
-RUN npm run build
+# Копируем скомпилированные ассеты Vite из Stage 1
+COPY --from=frontend-builder /app/public/build ./public/build
 
-# ── Права доступа ─────────────────────────────────────────────────────────────
+# Очистка локального bootstrap-кэша и сборка production package discovery
+RUN rm -f bootstrap/cache/*.php \
+    && php artisan package:discover --ansi
+
+# Настройка прав доступа для пользователя www-data
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# ── Entrypoint ────────────────────────────────────────────────────────────────
+# Entrypoint скрипт
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
