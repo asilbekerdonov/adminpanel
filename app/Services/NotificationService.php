@@ -1,127 +1,146 @@
 <?php
 
-// ═══════════════════════════════════════════════════════════════
-// app/Services/NotificationService.php
-// Адаптирован под твои роли: hr_manager, super_admin
-// ═══════════════════════════════════════════════════════════════
-
 namespace App\Services;
 
+use App\Enums\UserRole;
+use App\Enums\VacancyRequestStatus;
 use App\Models\Notification;
 use App\Models\User;
 use App\Models\VacancyRequest;
+use App\Repositories\Contracts\UserRepositoryInterface;
 
 class NotificationService
 {
-    public static function send(User|int $user, VacancyRequest $request, string $type, string $message): void
-    {
-        $userId = $user instanceof User ? $user->id : $user;
-
-        Notification::create([
-            'user_id' => $userId,
-            'vacancy_request_id' => $request->id,
-            'type' => $type,
-            'message' => $message,
-        ]);
-    }
+    public function __construct(
+        private readonly UserRepositoryInterface $users,
+    ) {}
 
     /**
-     * DepartmentHead отправил заявку → уведомить всех hr_manager
+     * Заявитель отправил заявку → уведомить всех HR-менеджеров.
      */
-    public static function onSubmittedToHr(VacancyRequest $request): void
+    public function onSubmittedToHr(VacancyRequest $request): void
     {
-        // Используй свою систему ролей:
-        // Если Spatie: User::role('hr_manager')->get()
-        // Если своя:   User::where('role', 'hr_manager')->get()
-        $hrUsers = User::role('hr_manager')->get();
         $positionName = $request->position?->name ?? 'должность';
 
-        foreach ($hrUsers as $hr) {
-            static::send($hr, $request, 'submitted',
+        foreach ($this->users->getByRole(UserRole::HR_MANAGER) as $hr) {
+            $this->send(
+                $hr->id,
+                $request,
+                VacancyRequestStatus::SUBMITTED->value,
                 "📋 Новая заявка: «{$positionName}» от {$request->requester?->name}"
             );
         }
     }
 
     /**
-     * HR отредактировал заявку → уведомить заявителя
+     * HR внёс изменения → уведомить заявителя.
      */
-    public static function onHrEdited(VacancyRequest $request, User $editor): void
+    public function onHrEdited(VacancyRequest $request, User $editor): void
     {
-        static::send($request->requester_id, $request, 'hr_edited',
+        $this->send(
+            $request->requester_id,
+            $request,
+            'hr_edited',
             "✏️ HR ({$editor->name}) внёс изменения в вашу заявку на «{$request->position?->name}»"
         );
     }
 
     /**
-     * HR отправил заявку super_admin'у → уведомить всех super_admin
+     * HR отправил заявку руководителю → уведомить всех super_admin.
      */
-    public static function onSentToSupervisor(VacancyRequest $request): void
+    public function onSentToSupervisor(VacancyRequest $request): void
     {
-        // Уведомляем всех super_admin (не одного конкретного)
-        $supervisors = User::role('super_admin')->get();
         $positionName = $request->position?->name ?? 'должность';
 
-        foreach ($supervisors as $supervisor) {
-            static::send($supervisor, $request, 'supervisor_review',
+        foreach ($this->users->getByRole(UserRole::SUPER_ADMIN) as $supervisor) {
+            $this->send(
+                $supervisor->id,
+                $request,
+                VacancyRequestStatus::SUPERVISOR_REVIEW->value,
                 "📝 Заявка на подбор «{$positionName}» ожидает вашего решения"
             );
         }
     }
 
     /**
-     * Supervisor принял решение → уведомить hr_manager и заявителя
+     * Руководитель принял решение → уведомить заявителя и HR.
      */
-    public static function onSupervisorDecision(VacancyRequest $request, string $decision): void
+    public function onSupervisorDecision(VacancyRequest $request, User $supervisor, VacancyRequestStatus $decision): void
     {
         $labels = [
-            'approved' => 'одобрена ✅',
-            'rejected' => 'отклонена ❌',
-            'on_hold' => 'приостановлена ⏸',
+            VacancyRequestStatus::APPROVED->value => 'одобрена ✅',
+            VacancyRequestStatus::REJECTED->value => 'отклонена ❌',
+            VacancyRequestStatus::ON_HOLD->value => 'приостановлена ⏸',
         ];
-        $label = $labels[$decision] ?? $decision;
-        $positionName = $request->position?->name ?? 'должность';
-        $supervisorName = auth()->user()?->name ?? 'Руководитель';
 
-        // → Заявителю
-        static::send($request->requester_id, $request, "supervisor_{$decision}",
-            "Ваша заявка на «{$positionName}» {$label} руководителем {$supervisorName}"
+        $label = $labels[$decision->value] ?? $decision->value;
+        $positionName = $request->position?->name ?? 'должность';
+
+        $this->send(
+            $request->requester_id,
+            $request,
+            "supervisor_{$decision->value}",
+            "Ваша заявка на «{$positionName}» {$label} руководителем {$supervisor->name}"
         );
 
-        // → HR (кто редактировал, иначе всем hr_manager)
         if ($request->hr_editor_id) {
-            static::send($request->hr_editor_id, $request, "supervisor_{$decision}",
+            $this->send(
+                $request->hr_editor_id,
+                $request,
+                "supervisor_{$decision->value}",
                 "Заявка на «{$positionName}» от {$request->requester?->name} {$label}"
             );
-        } else {
-            $hrUsers = User::role('hr_manager')->get();
-            foreach ($hrUsers as $hr) {
-                static::send($hr, $request, "supervisor_{$decision}",
-                    "Заявка на «{$positionName}» от {$request->requester?->name} {$label}"
-                );
-            }
+
+            return;
+        }
+
+        foreach ($this->users->getByRole(UserRole::HR_MANAGER) as $hr) {
+            $this->send(
+                $hr->id,
+                $request,
+                "supervisor_{$decision->value}",
+                "Заявка на «{$positionName}» от {$request->requester?->name} {$label}"
+            );
         }
     }
 
     /**
-     * HR закрыл вакансию → уведомить заявителя для подтверждения
+     * HR закрыл вакансию → уведомить заявителя для подтверждения.
      */
-    public static function onClosedByHr(VacancyRequest $request): void
+    public function onClosedByHr(VacancyRequest $request): void
     {
-        static::send($request->requester_id, $request, 'closed',
+        $this->send(
+            $request->requester_id,
+            $request,
+            VacancyRequestStatus::CLOSED->value,
             "🔒 Вакансия «{$request->position?->name}» закрыта. Пожалуйста, подтвердите закрытие."
         );
     }
 
     /**
-     * Заявитель подтвердил закрытие → уведомить hr_manager
+     * Заявитель подтвердил закрытие → уведомить HR-редактора.
      */
-    public static function onConfirmedClosed(VacancyRequest $request): void
+    public function onConfirmedClosed(VacancyRequest $request): void
     {
-        if ($request->hr_editor_id) {
-            static::send($request->hr_editor_id, $request, 'confirmed_closed',
-                "✅ Заявитель подтвердил закрытие вакансии «{$request->position?->name}»"
-            );
+        if (! $request->hr_editor_id) {
+            return;
         }
+
+        $this->send(
+            $request->hr_editor_id,
+            $request,
+            VacancyRequestStatus::CONFIRMED_CLOSED->value,
+            "✅ Заявитель подтвердил закрытие вакансии «{$request->position?->name}»"
+        );
+    }
+
+    protected function send(int $userId, VacancyRequest $request, string $type, string $message): void
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'vacancy_request_id' => $request->id,
+            'type' => $type,
+            'message' => $message,
+        ]);
     }
 }

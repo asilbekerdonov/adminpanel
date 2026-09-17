@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -53,6 +54,22 @@ class User extends Authenticatable
     }
 
     // ─── Хелперы ────────────────────────────────────────────────
+    public function hasUserRole(UserRole $role): bool
+    {
+        return $this->hasRole($role->value);
+    }
+
+    public function hasAnyUserRole(UserRole ...$roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($this->hasUserRole($role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getPositionCategoryAttribute(): ?string
     {
         return $this->position?->category;

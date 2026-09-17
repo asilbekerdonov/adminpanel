@@ -56,16 +56,16 @@ class StatementTest extends TestCase
         VacancyRequest::factory()->count(3)->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('supervisor.statements.index'))
+            ->get(route('statements.index'))
             ->assertOk()
-            ->assertViewIs('supervisor.statements')
+            ->assertViewIs('statements.index')
             ->assertViewHas('statements');
     }
 
     #[Test]
     public function guest_cannot_view_statements_index(): void
     {
-        $this->get(route('supervisor.statements.index'))
+        $this->get(route('statements.index'))
             ->assertRedirect(route('login'));
     }
 
@@ -79,9 +79,9 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->get(route('supervisor.statements.show', $statement))
+            ->get(route('statements.show', $statement))
             ->assertOk()
-            ->assertViewIs('supervisor.statement_show')
+            ->assertViewIs('statements.show')
             ->assertViewHas('statement');
     }
 
@@ -90,7 +90,7 @@ class StatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
-        $this->get(route('supervisor.statements.show', $statement))
+        $this->get(route('statements.show', $statement))
             ->assertRedirect(route('login'));
     }
 
@@ -105,10 +105,10 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.approve', $statement), [
+            ->post(route('statements.approve', $statement), [
                 'comment' => 'Всё хорошо, одобряю.',
             ])
-            ->assertRedirect(route('supervisor.statements.show', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -125,8 +125,8 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.approve', $statement), [])
-            ->assertRedirect(route('supervisor.statements.show', $statement))
+            ->post(route('statements.approve', $statement), [])
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
     }
 
@@ -135,7 +135,7 @@ class StatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
-        $this->post(route('supervisor.statements.approve', $statement))
+        $this->post(route('statements.approve', $statement))
             ->assertRedirect(route('login'));
 
         $this->assertDatabaseMissing('vacancy_requests', [
@@ -155,10 +155,10 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.reject', $statement), [
+            ->post(route('statements.reject', $statement), [
                 'comment' => 'Не соответствует требованиям.',
             ])
-            ->assertRedirect(route('supervisor.statements.show', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -173,7 +173,7 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.reject', $statement), [])
+            ->post(route('statements.reject', $statement), [])
             ->assertSessionHasErrors('comment');
 
         $this->assertDatabaseMissing('vacancy_requests', [
@@ -187,7 +187,7 @@ class StatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
-        $this->post(route('supervisor.statements.reject', $statement), [
+        $this->post(route('statements.reject', $statement), [
             'comment' => 'Причина отказа.',
         ])->assertRedirect(route('login'));
 
@@ -208,10 +208,10 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.on-hold', $statement), [
+            ->post(route('statements.hold', $statement), [
                 'comment' => 'Требуется дополнительная проверка.',
             ])
-            ->assertRedirect(route('supervisor.statements.show', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -225,7 +225,7 @@ class StatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
-        $this->post(route('supervisor.statements.on-hold', $statement))
+        $this->post(route('statements.hold', $statement))
             ->assertRedirect(route('login'));
 
         $this->assertDatabaseMissing('vacancy_requests', [
@@ -244,7 +244,7 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->approved()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.approve', $statement))
+            ->post(route('statements.approve', $statement))
             ->assertForbidden();
     }
 
@@ -254,7 +254,7 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->rejected()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.reject', $statement), [
+            ->post(route('statements.reject', $statement), [
                 'comment' => 'Комментарий.',
             ])
             ->assertForbidden();
@@ -266,7 +266,7 @@ class StatementTest extends TestCase
         $statement = VacancyRequest::factory()->onHold()->create();
 
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.statements.on-hold', $statement))
+            ->post(route('statements.hold', $statement))
             ->assertForbidden();
     }
 }

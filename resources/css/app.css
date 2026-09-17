@@ -1,3 +1,429 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =====================================================================
+   Единая тёмная тема приложения.
+   Bootstrap 5 подключается через CDN в layouts/*, этот файл идёт после
+   него и переопределяет компоненты. Никаких <style> и inline-стилей
+   в blade-шаблонах быть не должно — все правила живут здесь.
+   ===================================================================== */
+
+:root {
+    --app-bg: #111827;
+    --app-surface: #1f2937;
+    --app-surface-2: #1f2941;
+    --app-surface-3: #253141;
+    --app-border: #374151;
+    --app-border-soft: rgba(255, 255, 255, 0.1);
+    --app-border-faint: rgba(255, 255, 255, 0.07);
+    --app-text: #f9fafb;
+    --app-text-muted: #9ca3af;
+    --app-primary: #6366f1;
+    --app-primary-soft: #818cf8;
+    --app-placeholder: #6b7280;
+}
+
+body {
+    background-color: var(--app-bg);
+    color: #e5e7eb;
+    font-family: 'Figtree', sans-serif;
+}
+
+/* Alpine: скрыть элемент до инициализации (вместо inline style="display:none") */
+[x-cloak] {
+    display: none !important;
+}
+
+/* ── Каркас страницы ─────────────────────────────────────────────── */
+.app-shell {
+    min-height: 100vh;
+    background-color: var(--app-bg);
+}
+
+.page-header {
+    background-color: var(--app-surface);
+    border-bottom: 1px solid var(--app-border);
+    padding: 1rem 1.5rem;
+}
+
+.app-logo {
+    height: 36px;
+    width: auto;
+    fill: #e5e7eb;
+}
+
+/* ── Bootstrap-компоненты в тёмной теме ──────────────────────────── */
+.card {
+    background-color: var(--app-surface-2) !important;
+    border: 1px solid var(--app-border) !important;
+    color: var(--app-text) !important;
+}
+
+.card-header {
+    background-color: var(--app-surface) !important;
+    border-bottom: 1px solid var(--app-border-soft) !important;
+    color: var(--app-text) !important;
+}
+
+.card-footer {
+    background-color: var(--app-surface) !important;
+    border-top: 1px solid var(--app-border-soft) !important;
+    color: var(--app-text) !important;
+}
+
+a.card:hover {
+    border-color: #4f8ef7 !important;
+    transition: border-color 0.2s;
+}
+
+.table {
+    color: var(--app-text) !important;
+}
+
+.table-light th,
+.table > thead.table-light > tr > th {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text-muted) !important;
+    border-bottom-color: var(--app-border-soft) !important;
+}
+
+.table-hover > tbody > tr:hover > * {
+    background-color: var(--app-border) !important;
+    cursor: pointer;
+}
+
+.table > :not(caption) > * > * {
+    background-color: transparent !important;
+    border-bottom-color: var(--app-border-faint) !important;
+}
+
+.text-muted {
+    color: var(--app-text-muted) !important;
+}
+
+hr {
+    border-color: var(--app-border) !important;
+    opacity: 1;
+}
+
+code {
+    background-color: var(--app-bg) !important;
+    color: #a78bfa !important;
+}
+
+.form-control,
+.form-select {
+    background-color: var(--app-bg);
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--app-bg);
+    border-color: var(--app-primary);
+    color: var(--app-text);
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+}
+
+.form-control::placeholder {
+    color: var(--app-placeholder);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+    background-color: var(--app-surface);
+    color: var(--app-text-muted);
+}
+
+.modal-content,
+.dropdown-menu,
+.offcanvas {
+    background-color: var(--app-surface-2);
+    border: 1px solid var(--app-border-soft);
+    color: var(--app-text);
+}
+
+.dropdown-item {
+    color: var(--app-text);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--app-border);
+    color: var(--app-text);
+}
+
+.dropdown-divider {
+    border-color: var(--app-border);
+}
+
+.list-group-item {
+    background-color: transparent;
+    border-color: var(--app-border-faint);
+    color: var(--app-text);
+}
+
+.nav-tabs {
+    border-bottom-color: var(--app-border);
+}
+
+.nav-tabs .nav-link {
+    color: var(--app-text-muted);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--app-surface-2);
+    border-color: var(--app-border) var(--app-border) var(--app-surface-2);
+    color: var(--app-text);
+}
+
+.btn-outline-primary {
+    color: #60a5fa;
+    border-color: #60a5fa;
+}
+
+.btn-outline-primary:hover {
+    background-color: #60a5fa;
+    color: var(--app-bg);
+}
+
+.btn-outline-secondary,
+.btn-outline-light {
+    color: var(--app-text-muted);
+    border-color: var(--app-border);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-light:hover {
+    background-color: var(--app-border);
+    color: var(--app-text);
+}
+
+.btn-close {
+    filter: invert(1) grayscale(1) brightness(2);
+}
+
+/* ── Утилиты темы (замена inline-стилей) ─────────────────────────── */
+.text-app {
+    color: var(--app-text) !important;
+}
+
+.text-app-muted {
+    color: var(--app-text-muted) !important;
+}
+
+.text-app-primary {
+    color: var(--app-primary) !important;
+}
+
+.text-app-soft {
+    color: var(--app-primary-soft) !important;
+}
+
+.text-app-placeholder {
+    color: var(--app-placeholder) !important;
+}
+
+.fs-07 {
+    font-size: 0.7rem !important;
+}
+
+.fs-075 {
+    font-size: 0.75rem !important;
+}
+
+.fs-08 {
+    font-size: 0.8rem !important;
+}
+
+.fs-09 {
+    font-size: 0.9rem !important;
+}
+
+.app-kpi-icon {
+    font-size: 2.5rem;
+    mix-blend-mode: hard-light;
+}
+
+.app-pre {
+    white-space: pre-line;
+    min-height: 60px;
+}
+
+.app-pre-lg {
+    white-space: pre-line;
+    min-height: 120px;
+}
+
+.app-clickable {
+    cursor: pointer;
+}
+
+.app-col-sm {
+    min-width: 120px;
+    max-width: 180px;
+}
+
+.app-col-md {
+    min-width: 140px;
+    max-width: 220px;
+}
+
+.app-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--app-text-muted);
+}
+
+.app-info-label {
+    color: var(--app-text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.app-info-value {
+    color: var(--app-text);
+    font-weight: 500;
+}
+
+.app-section-title {
+    color: var(--app-text);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.app-primary-bar {
+    display: inline-block;
+    width: 3px;
+    align-self: stretch;
+    background-color: var(--app-primary);
+    border-radius: 2px;
+}
+
+.app-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.app-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.app-filter-btn {
+    background: var(--app-bg);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--app-text-muted);
+    border-radius: 999px;
+    padding: 0.25rem 0.9rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.app-filter-btn.active,
+.app-filter-btn:hover {
+    background: var(--app-primary);
+    border-color: var(--app-primary);
+    color: #fff;
+}
+
+.app-log {
+    position: relative;
+    padding-left: 1.5rem;
+    padding-bottom: 1rem;
+}
+
+.app-log::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    bottom: 0;
+    width: 2px;
+    background: rgba(99, 102, 241, 0.3);
+}
+
+.app-log-dot {
+    position: absolute;
+    left: 0.25rem;
+    top: 0.35rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--app-primary);
+}
+
+.app-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--app-primary-soft);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+/* Категории должностей (A–D) — используются в бейджах */
+.app-cat-a { background-color: #7c3aed; }
+.app-cat-b { background-color: #1d4ed8; }
+.app-cat-c { background-color: #065f46; }
+.app-cat-d { background-color: #92400e; }
+
+/* ── Навигация и уведомления ─────────────────────────────────────── */
+.bg-app-surface {
+    background-color: var(--app-surface) !important;
+}
+
+.border-app {
+    border-color: var(--app-border) !important;
+}
+
+.btn-user-menu {
+    color: #e5e7eb;
+    background: transparent;
+    border: 1px solid var(--app-border);
+}
+
+.notif-badge {
+    font-size: 0.6rem;
+}
+
+.notif-menu {
+    width: 360px;
+    max-height: 480px;
+    overflow-y: auto;
+    background: var(--app-surface-2);
+    border: 1px solid var(--app-border-soft);
+}
+
+.notif-header {
+    border-bottom: 1px solid var(--app-border-soft);
+}
+
+.notif-item {
+    border-bottom: 1px solid var(--app-border-faint);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notif-item:hover {
+    background: var(--app-border);
+}
+
+.notif-item--unread {
+    background: rgba(99, 102, 241, 0.08);
+}

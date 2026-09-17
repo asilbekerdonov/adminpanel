@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use App\Enums\VacancyRequestStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,6 +25,7 @@ class VacancyRequest extends Model
     ];
 
     protected $casts = [
+        'status' => VacancyRequestStatus::class,
         'subordinates' => 'array',
         'languages' => 'array',
         'submitted_at' => 'datetime',
@@ -93,122 +97,114 @@ class VacancyRequest extends Model
 
     public function isDraft(): bool
     {
-        return $this->status === 'draft';
+        return $this->status === VacancyRequestStatus::DRAFT;
     }
 
     public function isSubmitted(): bool
     {
-        return $this->status === 'submitted';
+        return $this->status === VacancyRequestStatus::SUBMITTED;
     }
 
     public function isHrReviewed(): bool
     {
-        return $this->status === 'hr_reviewed';
+        return $this->status === VacancyRequestStatus::HR_REVIEWED;
     }
 
     public function isSupervisorReview(): bool
     {
-        return $this->status === 'supervisor_review';
+        return $this->status === VacancyRequestStatus::SUPERVISOR_REVIEW;
     }
 
     public function isApproved(): bool
     {
-        return $this->status === 'approved';
+        return $this->status === VacancyRequestStatus::APPROVED;
     }
 
     public function isRejected(): bool
     {
-        return $this->status === 'rejected';
+        return $this->status === VacancyRequestStatus::REJECTED;
     }
 
     public function isOnHold(): bool
     {
-        return $this->status === 'on_hold';
+        return $this->status === VacancyRequestStatus::ON_HOLD;
     }
 
     public function isSearching(): bool
     {
-        return $this->status === 'searching';
+        return $this->status === VacancyRequestStatus::SEARCHING;
     }
 
     public function isClosed(): bool
     {
-        return $this->status === 'closed';
+        return $this->status === VacancyRequestStatus::CLOSED;
     }
 
     public function isConfirmedClosed(): bool
     {
-        return $this->status === 'confirmed_closed';
+        return $this->status === VacancyRequestStatus::CONFIRMED_CLOSED;
     }
 
-    // DepartmentHead может редактировать только черновик
+    /** Заявитель может редактировать и отправлять только черновик. */
     public function canEditByRequester(): bool
     {
         return $this->isDraft();
     }
 
-    // HR может редактировать до отправки supervisor
+    /** HR может редактировать до отправки руководителю. */
     public function canEditByHr(): bool
     {
-        return in_array($this->status, ['submitted', 'hr_reviewed']);
+        return in_array($this->status, [
+            VacancyRequestStatus::SUBMITTED,
+            VacancyRequestStatus::HR_REVIEWED,
+        ], true);
+    }
+
+    // ─── Visibility (используется Repository и Policy) ────────
+
+    public function isVisibleTo(User $user): bool
+    {
+        if ($user->hasUserRole(UserRole::SUPER_ADMIN)) {
+            return $this->isSupervisorReview() || (bool) $this->status?->isDecided();
+        }
+
+        if ($user->hasUserRole(UserRole::HR_MANAGER)) {
+            return ! $this->isDraft();
+        }
+
+        if ($user->hasUserRole(UserRole::DEPARTMENT_HEAD)) {
+            return (int) $this->requester_id === (int) $user->id;
+        }
+
+        return false;
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        return match (true) {
+            $user->hasUserRole(UserRole::SUPER_ADMIN) => $query->whereIn('status', [
+                VacancyRequestStatus::SUPERVISOR_REVIEW->value,
+                VacancyRequestStatus::APPROVED->value,
+                VacancyRequestStatus::REJECTED->value,
+                VacancyRequestStatus::ON_HOLD->value,
+            ]),
+            $user->hasUserRole(UserRole::HR_MANAGER) => $query->where('status', '!=', VacancyRequestStatus::DRAFT->value),
+            $user->hasUserRole(UserRole::DEPARTMENT_HEAD) => $query->where('requester_id', $user->id),
+            default => $query->whereRaw('1 = 0'),
+        };
     }
 
     // ─── Status label & color (из state или fallback) ─────────
 
     public function getStatusLabelAttribute(): string
     {
-        if ($this->state) {
-            return $this->state->label_ru;
-        }
-
-        return match ($this->status) {
-            'draft' => 'Черновик',
-            'submitted' => 'Отправлена в HR',
-            'hr_reviewed' => 'HR рассматривает',
-            'supervisor_review' => 'На подписи у руководителя',
-            'approved' => 'Одобрена',
-            'rejected' => 'Отклонена',
-            'on_hold' => 'Приостановлена',
-            'searching' => 'Идёт поиск',
-            'closed' => 'HR закрыл',
-            'confirmed_closed' => 'Закрыта',
-            default => $this->status,
-        };
+        return $this->state?->label_ru ?? $this->status?->label() ?? '';
     }
 
     public function getStatusColorAttribute(): string
     {
-        if ($this->state) {
-            return $this->state->color;
-        }
-
-        return match ($this->status) {
-            'draft' => 'secondary',
-            'submitted' => 'info',
-            'hr_reviewed' => 'primary',
-            'supervisor_review' => 'warning',
-            'approved' => 'success',
-            'rejected' => 'danger',
-            'on_hold' => 'warning',
-            'searching' => 'primary',
-            'closed' => 'secondary',
-            'confirmed_closed' => 'dark',
-            default => 'secondary',
-        };
+        return $this->state?->color ?? $this->status?->color() ?? 'secondary';
     }
-
-    // ─── Статусы ──────────────────────────────────────────────
-    const STATUS_LABELS = [
-        'draft' => 'Черновик',
-        'submitted' => 'Отправлена',
-        'hr_reviewed' => 'На проверке HR',
-        'approved' => 'Одобрена',
-        'rejected' => 'Отклонена',
-        'on_hold' => 'Приостановлена',
-        'searching' => 'Поиск начат',
-        'closed' => 'Вакансия закрыта',
-        'confirmed_closed' => 'Закрытие подтверждено',
-    ];
 
     const OPENING_REASON_LABELS = [
         'employee_resigned' => 'Уволился сотрудник',
@@ -219,22 +215,11 @@ class VacancyRequest extends Model
         'other' => 'Другое',
     ];
 
-    const STATUS_COLORS = [
-        'draft' => 'secondary',
-        'submitted' => 'info',
-        'hr_reviewed' => 'primary',
-
-        'rejected' => 'danger',
-        'on_hold' => 'warning',
-        'searching' => 'primary',
-        'closed' => 'dark',
-        'confirmed_closed' => 'success',
-    ];
     // ─── Sync state_id from states table ──────────────────────
 
     public function syncState(): void
     {
-        $state = State::byKey($this->status);
+        $state = State::byKey($this->status->value);
         if ($state) {
             $this->update(['state_id' => $state->id]);
         }

@@ -60,16 +60,16 @@ class HrStatementTest extends TestCase
         VacancyRequest::factory()->count(3)->supervisorReview()->create();
 
         $this->actingAs($this->hrManager)
-            ->get(route('hr.statements.index'))
+            ->get(route('statements.index'))
             ->assertOk()
-            ->assertViewIs('hr.statements')
+            ->assertViewIs('statements.index')
             ->assertViewHas('statements');
     }
 
     #[Test]
     public function guest_cannot_view_statements_index(): void
     {
-        $this->get(route('hr.statements.index'))
+        $this->get(route('statements.index'))
             ->assertRedirect(route('login'));
     }
 
@@ -83,9 +83,9 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
         $this->actingAs($this->hrManager)
-            ->get(route('hr.statements.show', $statement))
+            ->get(route('statements.show', $statement))
             ->assertOk()
-            ->assertViewIs('hr.statement_show')
+            ->assertViewIs('statements.show')
             ->assertViewHas('statement')
             ->assertViewHas('supervisors');
     }
@@ -95,7 +95,7 @@ class HrStatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
-        $this->get(route('hr.statements.show', $statement))
+        $this->get(route('statements.show', $statement))
             ->assertRedirect(route('login'));
     }
 
@@ -111,11 +111,11 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
         $this->actingAs($this->hrManager)
-            ->put(route('hr.statements.update', $statement), [
+            ->put(route('statements.update', $statement), [
                 'reports_to' => 'Директор',
                 'grade' => 3,
             ])
-            ->assertRedirect(route('hr.statements.show', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -131,7 +131,7 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->hrManager)
-            ->put(route('hr.statements.update', $statement), [
+            ->put(route('statements.update', $statement), [
                 'reports_to' => 'Директор',
             ])
             ->assertForbidden();
@@ -145,7 +145,7 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
         $this->actingAs($this->hrManager)
-            ->put(route('hr.statements.update', $statement), [
+            ->put(route('statements.update', $statement), [
                 'grade' => 2,
             ]);
 
@@ -161,7 +161,7 @@ class HrStatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
-        $this->put(route('hr.statements.update', $statement), [
+        $this->put(route('statements.update', $statement), [
             'grade' => 2,
         ])->assertRedirect(route('login'));
     }
@@ -181,10 +181,10 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
         $this->actingAs($this->hrManager)
-            ->post(route('hr.statements.send-supervisor', $statement), [
+            ->post(route('statements.send-to-supervisor', $statement), [
                 'supervisor_id' => $supervisor->id,
             ])
-            ->assertRedirect(route('hr.statements.show', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -203,7 +203,7 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->supervisorReview()->create();
 
         $this->actingAs($this->hrManager)
-            ->post(route('hr.statements.send-supervisor', $statement), [
+            ->post(route('statements.send-to-supervisor', $statement), [
                 'supervisor_id' => $supervisor->id,
             ])
             ->assertForbidden();
@@ -215,7 +215,7 @@ class HrStatementTest extends TestCase
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
         $this->actingAs($this->hrManager)
-            ->post(route('hr.statements.send-supervisor', $statement), [])
+            ->post(route('statements.send-to-supervisor', $statement), [])
             ->assertSessionHasErrors('supervisor_id');
     }
 
@@ -224,7 +224,7 @@ class HrStatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->create(['status' => 'submitted']);
 
-        $this->post(route('hr.statements.send-supervisor', $statement), [
+        $this->post(route('statements.send-to-supervisor', $statement), [
             'supervisor_id' => 1,
         ])->assertRedirect(route('login'));
     }

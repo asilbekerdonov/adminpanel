@@ -9,23 +9,10 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        body { background-color: rgb(17,24,39) !important; color: #e5e7eb; font-family: 'Figtree', sans-serif; }
-        .page-header { background-color: rgb(31,41,55); border-bottom: 1px solid rgb(55,65,81); padding: 1rem 1.5rem; }
-        .card { background-color: rgb(31,41,55) !important; border: 1px solid rgb(55,65,81) !important; color: #e5e7eb !important; }
-        .card-header { background-color: rgb(37,49,65) !important; border-bottom: 1px solid rgb(55,65,81) !important; color: #e5e7eb !important; }
-        .text-muted { color: #9ca3af !important; }
-        hr { border-color: rgb(55,65,81) !important; opacity: 1; }
-        .btn-outline-primary { color: #60a5fa; border-color: #60a5fa; }
-        .btn-outline-primary:hover { background-color: #60a5fa; color: #111827; }
-        a.card:hover { border-color: #4f8ef7 !important; transition: border-color 0.2s; }
-        
-    </style>
-    @stack('styles')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    
-    <div style="min-height: 100vh; background-color: rgb(17,24,39);">
+    <div class="app-shell">
         @include('layouts.navigation')
 
         @isset($header)
@@ -34,11 +21,11 @@
         </div>
         @endisset
 
-        
         <main>
             {{ $slot }}
         </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @stack('scripts')
 </body>
 </html>

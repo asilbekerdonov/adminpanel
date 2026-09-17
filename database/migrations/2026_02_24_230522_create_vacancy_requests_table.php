@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -66,6 +65,7 @@ return new class extends Migration
                 'draft',           // Черновик
                 'submitted',       // Отправлена
                 'hr_reviewed',     // HR просмотрел
+                'supervisor_review', // На подписи у руководителя
                 'approved',        // Руководитель одобрил
                 'rejected',        // Отклонена
                 'on_hold',         // Приостановлена
@@ -93,21 +93,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("
-        ALTER TABLE vacancy_requests 
-        MODIFY COLUMN status ENUM(
-            'draft',
-            'submitted',
-            'hr_reviewed',
-            'supervisor_review',  -- добавляем недостающее
-            'approved',
-            'rejected',
-            'on_hold',
-            'searching',
-            'closed',
-            'confirmed_closed'
-        ) NOT NULL DEFAULT 'draft'
-    ");
     }
 
     public function down(): void

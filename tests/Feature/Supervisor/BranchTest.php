@@ -37,7 +37,7 @@ class BranchTest extends TestCase
     public function supervisor_can_view_branches_page(): void
     {
         $response = $this->actingAs($this->supervisor)
-            ->get(route('supervisor.branches.index'));
+            ->get(route('branches.index'));
 
         $response->assertStatus(200);
     }
@@ -45,7 +45,7 @@ class BranchTest extends TestCase
     #[Test]
     public function guest_cannot_view_branches_page(): void
     {
-        $response = $this->get(route('supervisor.branches.index'));
+        $response = $this->get(route('branches.index'));
 
         $response->assertRedirect(route('login'));
     }
@@ -56,7 +56,7 @@ class BranchTest extends TestCase
         $branch = Branch::factory()->create(['name' => 'Тестовый филиал']);
 
         $response = $this->actingAs($this->supervisor)
-            ->get(route('supervisor.branches.index'));
+            ->get(route('branches.index'));
 
         $response->assertStatus(200);
         $response->assertSee($branch->name);
@@ -72,9 +72,9 @@ class BranchTest extends TestCase
         ];
 
         $response = $this->actingAs($this->supervisor)
-            ->post(route('supervisor.branches.store'), $payload);
+            ->post(route('branches.store'), $payload);
 
-        $response->assertRedirect(route('supervisor.branches.index'));
+        $response->assertRedirect(route('branches.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('branches', [
@@ -86,7 +86,7 @@ class BranchTest extends TestCase
     #[Test]
     public function guest_cannot_create_branch(): void
     {
-        $response = $this->post(route('supervisor.branches.store'), [
+        $response = $this->post(route('branches.store'), [
             'name' => 'Новый филиал',
             'code' => 'NEW-01',
         ]);
@@ -100,9 +100,9 @@ class BranchTest extends TestCase
         $branch = Branch::factory()->create();
 
         $response = $this->actingAs($this->supervisor)
-            ->delete(route('supervisor.branches.destroy', $branch));
+            ->delete(route('branches.destroy', $branch));
 
-        $response->assertRedirect(route('supervisor.branches.index'));
+        $response->assertRedirect(route('branches.index'));
         $this->assertDatabaseMissing('branches', ['id' => $branch->id]);
     }
 
@@ -111,7 +111,7 @@ class BranchTest extends TestCase
     {
         $branch = Branch::factory()->create();
 
-        $response = $this->delete(route('supervisor.branches.destroy', $branch));
+        $response = $this->delete(route('branches.destroy', $branch));
 
         $response->assertRedirect(route('login'));
         $this->assertDatabaseHas('branches', ['id' => $branch->id]);

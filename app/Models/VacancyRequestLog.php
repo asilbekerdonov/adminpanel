@@ -1,9 +1,8 @@
 <?php
 
-// app/Models/VacancyRequestLog.php
-
 namespace App\Models;
 
+use App\Enums\VacancyRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class VacancyRequestLog extends Model
@@ -22,6 +21,11 @@ class VacancyRequestLog extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return VacancyRequest::STATUS_LABELS[$this->status] ?? $this->status;
+        return VacancyRequestStatus::tryFrom($this->status)?->label() ?? $this->status;
+    }
+
+    public function getStatusColorAttribute(): string
+    {
+        return VacancyRequestStatus::tryFrom($this->status)?->color() ?? 'secondary';
     }
 }

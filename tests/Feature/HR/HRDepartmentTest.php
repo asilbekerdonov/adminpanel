@@ -52,9 +52,9 @@ class HRDepartmentTest extends TestCase
         Branch::factory()->count(2)->create(['is_active' => true]);
 
         $this->actingAs($this->hrManager)
-            ->get(route('hr.departments.index'))
+            ->get(route('departments.index'))
             ->assertOk()
-            ->assertViewIs('hr.departments')
+            ->assertViewIs('structure.departments')
             ->assertViewHas('branches');
     }
 
@@ -68,7 +68,7 @@ class HRDepartmentTest extends TestCase
         $this->hrManager->update(['branch_id' => $ownBranch->id]);
 
         $response = $this->actingAs($this->hrManager)
-            ->get(route('hr.departments.index'))
+            ->get(route('departments.index'))
             ->assertOk();
 
         $branches = $response->viewData('branches');
@@ -83,7 +83,7 @@ class HRDepartmentTest extends TestCase
         Branch::factory()->count(2)->create(['is_active' => false]); // неактивные — не должны попасть
 
         $response = $this->actingAs($this->hrManager)
-            ->get(route('hr.departments.index'))
+            ->get(route('departments.index'))
             ->assertOk();
 
         $branches = $response->viewData('branches');
@@ -93,7 +93,7 @@ class HRDepartmentTest extends TestCase
     #[Test]
     public function guest_cannot_view_departments_page(): void
     {
-        $this->get(route('hr.departments.index'))
+        $this->get(route('departments.index'))
             ->assertRedirect(route('login'));
     }
 }

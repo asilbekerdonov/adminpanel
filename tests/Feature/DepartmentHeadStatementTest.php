@@ -76,9 +76,9 @@ class DepartmentHeadStatementTest extends TestCase
         VacancyRequest::factory()->create(['status' => 'draft']);
 
         $response = $this->actingAs($this->departmentHead)
-            ->get(route('department_head.statements.index'))
+            ->get(route('statements.index'))
             ->assertOk()
-            ->assertViewIs('department_head.statements')
+            ->assertViewIs('statements.index')
             ->assertViewHas('statements');
 
         $statements = $response->viewData('statements');
@@ -88,7 +88,7 @@ class DepartmentHeadStatementTest extends TestCase
     #[Test]
     public function guest_cannot_view_statements_index(): void
     {
-        $this->get(route('department_head.statements.index'))
+        $this->get(route('statements.index'))
             ->assertRedirect(route('login'));
     }
 
@@ -103,9 +103,9 @@ class DepartmentHeadStatementTest extends TestCase
         $this->departmentHead->update(['subdivision_id' => $subdivision->id]);
 
         $this->actingAs($this->departmentHead)
-            ->get(route('department_head.statements.create'))
+            ->get(route('statements.create'))
             ->assertOk()
-            ->assertViewIs('department_head.statement_create')
+            ->assertViewIs('statements.create')
             ->assertViewHas('user')
             ->assertViewHas('vacantPositions')
             ->assertViewHas('allPositions');
@@ -114,7 +114,7 @@ class DepartmentHeadStatementTest extends TestCase
     #[Test]
     public function guest_cannot_view_create_form(): void
     {
-        $this->get(route('department_head.statements.create'))
+        $this->get(route('statements.create'))
             ->assertRedirect(route('login'));
     }
 
@@ -137,11 +137,11 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.store'), [
+            ->post(route('statements.store'), [
                 'position_id' => $position->id,
                 'grade' => 3,
             ])
-            ->assertRedirect(route('department_head.statements.index'))
+            ->assertRedirect(route('statements.index'))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -155,7 +155,7 @@ class DepartmentHeadStatementTest extends TestCase
     public function store_fails_without_position_id(): void
     {
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.store'), [])
+            ->post(route('statements.store'), [])
             ->assertSessionHasErrors('position_id');
     }
 
@@ -164,7 +164,7 @@ class DepartmentHeadStatementTest extends TestCase
     {
         $position = Position::factory()->create();
 
-        $this->post(route('department_head.statements.store'), [
+        $this->post(route('statements.store'), [
             'position_id' => $position->id,
         ])->assertRedirect(route('login'));
 
@@ -186,9 +186,9 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->get(route('department_head.statements.show', $statement))
+            ->get(route('statements.show', $statement))
             ->assertOk()
-            ->assertViewIs('department_head.statement_show')
+            ->assertViewIs('statements.show')
             ->assertViewHas('statement');
     }
 
@@ -197,7 +197,7 @@ class DepartmentHeadStatementTest extends TestCase
     {
         $statement = VacancyRequest::factory()->create(['status' => 'draft']);
 
-        $this->get(route('department_head.statements.show', $statement))
+        $this->get(route('statements.show', $statement))
             ->assertRedirect(route('login'));
     }
 
@@ -218,7 +218,7 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->get(route('department_head.statements.show', $statement))
+            ->get(route('statements.show', $statement))
             ->assertOk();
     }
 
@@ -228,7 +228,7 @@ class DepartmentHeadStatementTest extends TestCase
         $otherStatement = VacancyRequest::factory()->create(['status' => 'draft']);
 
         $this->actingAs($this->departmentHead)
-            ->get(route('department_head.statements.edit', $otherStatement))
+            ->get(route('statements.edit', $otherStatement))
             ->assertForbidden();
     }
 
@@ -240,7 +240,7 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->get(route('department_head.statements.edit', $statement))
+            ->get(route('statements.edit', $statement))
             ->assertForbidden();
     }
 
@@ -264,12 +264,12 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->put(route('department_head.statements.update', $statement), [
+            ->put(route('statements.update', $statement), [
                 'position_id' => $position->id,
                 'reports_to' => 'Генеральный директор',
                 'grade' => 4,
             ])
-            ->assertRedirect(route('department_head.statements.show', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -286,7 +286,7 @@ class DepartmentHeadStatementTest extends TestCase
         $otherStatement = VacancyRequest::factory()->create(['status' => 'draft']);
 
         $this->actingAs($this->departmentHead)
-            ->put(route('department_head.statements.update', $otherStatement), [
+            ->put(route('statements.update', $otherStatement), [
                 'position_id' => $position->id,
             ])
             ->assertForbidden();
@@ -308,7 +308,7 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->put(route('department_head.statements.update', $statement), [
+            ->put(route('statements.update', $statement), [
                 'position_id' => $position->id,
             ]);
 
@@ -325,7 +325,7 @@ class DepartmentHeadStatementTest extends TestCase
         $position = Position::factory()->create();
         $statement = VacancyRequest::factory()->create(['status' => 'draft']);
 
-        $this->put(route('department_head.statements.update', $statement), [
+        $this->put(route('statements.update', $statement), [
             'position_id' => $position->id,
         ])->assertRedirect(route('login'));
     }
@@ -345,8 +345,8 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.submit', $statement))
-            ->assertRedirect(route('department_head.statements.show', $statement))
+            ->post(route('statements.submit-to-hr', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -361,7 +361,7 @@ class DepartmentHeadStatementTest extends TestCase
         $otherStatement = VacancyRequest::factory()->create(['status' => 'draft']);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.submit', $otherStatement))
+            ->post(route('statements.submit-to-hr', $otherStatement))
             ->assertForbidden();
     }
 
@@ -374,7 +374,7 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.submit', $statement))
+            ->post(route('statements.submit-to-hr', $statement))
             ->assertForbidden();
     }
 
@@ -389,7 +389,7 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.submit', $statement));
+            ->post(route('statements.submit-to-hr', $statement));
 
         $this->assertDatabaseHas('vacancy_request_logs', [
             'vacancy_request_id' => $statement->id,
@@ -406,7 +406,7 @@ class DepartmentHeadStatementTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $this->post(route('department_head.statements.submit', $statement))
+        $this->post(route('statements.submit-to-hr', $statement))
             ->assertRedirect(route('login'));
 
         $this->assertDatabaseMissing('vacancy_requests', [
@@ -430,8 +430,8 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.confirm-close', $statement))
-            ->assertRedirect(route('department_head.statements.show', $statement))
+            ->post(route('statements.confirm-close', $statement))
+            ->assertRedirect(route('statements.show', $statement))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('vacancy_requests', [
@@ -446,7 +446,7 @@ class DepartmentHeadStatementTest extends TestCase
         $otherStatement = VacancyRequest::factory()->create(['status' => 'closed']);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.confirm-close', $otherStatement))
+            ->post(route('statements.confirm-close', $otherStatement))
             ->assertForbidden();
     }
 
@@ -459,7 +459,7 @@ class DepartmentHeadStatementTest extends TestCase
         ]);
 
         $this->actingAs($this->departmentHead)
-            ->post(route('department_head.statements.confirm-close', $statement))
+            ->post(route('statements.confirm-close', $statement))
             ->assertForbidden();
     }
 
@@ -471,7 +471,7 @@ class DepartmentHeadStatementTest extends TestCase
             'status' => 'closed',
         ]);
 
-        $this->post(route('department_head.statements.confirm-close', $statement))
+        $this->post(route('statements.confirm-close', $statement))
             ->assertRedirect(route('login'));
 
         $this->assertDatabaseMissing('vacancy_requests', [

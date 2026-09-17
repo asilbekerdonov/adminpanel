@@ -17,5 +17,10 @@ export default {
         },
     },
 
+    // Bootstrap 5 уже даёт CSS-reset — preflight Tailwind его ломает.
+    corePlugins: {
+        preflight: false,
+    },
+
     plugins: [forms],
 };

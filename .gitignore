@@ -12,6 +12,8 @@
 /.vscode
 /.zed
 /auth.json
+/.npm-cache
+/database/*.sqlite
 /node_modules
 /public/build
 /public/hot

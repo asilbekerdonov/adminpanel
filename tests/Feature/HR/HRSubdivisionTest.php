@@ -26,17 +26,13 @@ class HrSubdivisionTest extends TestCase
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $permissions = [
-            'subdivision.view',
-            'subdivision.manage',
-            'department.view',
-        ];
-
-        foreach ($permissions as $perm) {
+        foreach (['subdivision.view', 'subdivision.manage', 'department.view'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web'])->syncPermissions(Permission::all());
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web'])
+            ->syncPermissions(Permission::all());
+
         $hrRole = Role::firstOrCreate(['name' => 'hr_manager', 'guard_name' => 'web']);
         $hrRole->syncPermissions(['subdivision.view', 'department.view']);
 
@@ -46,30 +42,26 @@ class HrSubdivisionTest extends TestCase
         $this->department = Department::factory()->create();
     }
 
-    // ================================================================
-    // INDEX — просмотр подразделений отдела
-    // ================================================================
-
     #[Test]
     public function hr_manager_can_view_subdivisions_page(): void
     {
         Subdivision::factory()->count(3)->create(['department_id' => $this->department->id]);
 
         $this->actingAs($this->hrManager)
-            ->get(route('hr.departments.subdivisions.index', $this->department))
+            ->get(route('subdivisions.index', ['department_id' => $this->department->id]))
             ->assertOk()
-            ->assertViewIs('hr.subdivisions')
-            ->assertViewHas('department', $this->department)
+            ->assertViewIs('structure.subdivisions')
+            ->assertViewHas('department')
             ->assertViewHas('subdivisions');
     }
 
     #[Test]
     public function subdivisions_page_loads_positions_and_users(): void
     {
-        $subdivision = Subdivision::factory()->create(['department_id' => $this->department->id]);
+        Subdivision::factory()->create(['department_id' => $this->department->id]);
 
         $response = $this->actingAs($this->hrManager)
-            ->get(route('hr.departments.subdivisions.index', $this->department))
+            ->get(route('subdivisions.index', ['department_id' => $this->department->id]))
             ->assertOk();
 
         $subdivisions = $response->viewData('subdivisions');
@@ -79,7 +71,7 @@ class HrSubdivisionTest extends TestCase
     #[Test]
     public function guest_cannot_view_subdivisions_page(): void
     {
-        $this->get(route('hr.departments.subdivisions.index', $this->department))
+        $this->get(route('subdivisions.index', ['department_id' => $this->department->id]))
             ->assertRedirect(route('login'));
     }
 }

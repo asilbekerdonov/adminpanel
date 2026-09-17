@@ -27,8 +27,7 @@ class AuthenticatedSessionController extends Controller
         // Обновляем время последнего входа
         $user->update(['last_login_at' => now()]);
 
-        // Редирект по роли
-        return redirect()->intended($this->redirectTo($user));
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -38,16 +37,5 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
-    }
-
-    private function redirectTo($user): string
-    {
-        return match (true) {
-            $user->hasRole('super_admin') => route('dashboard'),
-            $user->hasRole('hr_manager') => route('dashboard'),
-            $user->hasRole('employee') => route('dashboard'),
-            $user->hasRole('department_head') => route('dashboard'),
-            default => route('dashboard'),
-        };
     }
 }

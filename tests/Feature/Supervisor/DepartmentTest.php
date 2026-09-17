@@ -24,36 +24,20 @@ class DepartmentTest extends TestCase
     {
         parent::setUp();
 
-        // Сбрасываем кэш прав Spatie
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Создаём нужные права
-        $permissions = [
-            'department.view',
-            'department.manage',
-            'branch.view',
-            'branch.manage',
-        ];
-
-        foreach ($permissions as $perm) {
+        foreach (['department.view', 'department.manage', 'branch.view', 'branch.manage'] as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
-        // super_admin — все права
-        $superAdminRole = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
-        $superAdminRole->syncPermissions(Permission::all());
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web'])
+            ->syncPermissions(Permission::all());
 
-        // Создаём пользователей и назначаем роли
         $this->superAdmin = User::factory()->create();
         $this->superAdmin->assignRole('super_admin');
 
-        // Общий филиал для всех тестов
         $this->branch = Branch::factory()->create();
     }
-
-    // ================================================================
-    // INDEX — просмотр списка отделов
-    // ================================================================
 
     #[Test]
     public function super_admin_can_view_departments_page(): void
@@ -61,32 +45,30 @@ class DepartmentTest extends TestCase
         Department::factory()->count(3)->create(['branch_id' => $this->branch->id]);
 
         $this->actingAs($this->superAdmin)
-            ->get(route('supervisor.branches.departments.index', $this->branch))
+            ->get(route('departments.index', ['branch_id' => $this->branch->id]))
             ->assertOk()
-            ->assertViewIs('supervisor.departments')
-            ->assertViewHas('branch', $this->branch)
+            ->assertViewIs('structure.departments')
+            ->assertViewHas('branch')
             ->assertViewHas('departments');
     }
 
     #[Test]
     public function guest_cannot_view_departments_page(): void
     {
-        $this->get(route('supervisor.branches.departments.index', $this->branch))
+        $this->get(route('departments.index', ['branch_id' => $this->branch->id]))
             ->assertRedirect(route('login'));
     }
-
-    // ================================================================
-    // STORE — создание отдела
-    // ================================================================
 
     #[Test]
     public function super_admin_can_create_department(): void
     {
-        $payload = ['name' => 'Отдел кадров', 'code' => 'HR-001'];
-
         $this->actingAs($this->superAdmin)
-            ->post(route('supervisor.branches.departments.store', $this->branch), $payload)
-            ->assertRedirect(route('supervisor.branches.departments.index', $this->branch))
+            ->post(route('departments.store'), [
+                'branch_id' => $this->branch->id,
+                'name' => 'Отдел кадров',
+                'code' => 'HR-001',
+            ])
+            ->assertRedirect(route('departments.index', ['branch_id' => $this->branch->id]))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('departments', [
@@ -96,9 +78,17 @@ class DepartmentTest extends TestCase
         ]);
     }
 
-    // ================================================================
-    // DESTROY — удаление отдела
-    // ================================================================
+    #[Test]
+    public function guest_cannot_create_department(): void
+    {
+        $this->post(route('departments.store'), [
+            'branch_id' => $this->branch->id,
+            'name' => 'Отдел кадров',
+            'code' => 'HR-001',
+        ])->assertRedirect(route('login'));
+
+        $this->assertDatabaseMissing('departments', ['code' => 'HR-001']);
+    }
 
     #[Test]
     public function super_admin_can_delete_department(): void
@@ -106,10 +96,35 @@ class DepartmentTest extends TestCase
         $department = Department::factory()->create(['branch_id' => $this->branch->id]);
 
         $this->actingAs($this->superAdmin)
-            ->delete(route('supervisor.branches.departments.destroy', [$this->branch, $department]))
-            ->assertRedirect(route('supervisor.branches.departments.index', $this->branch))
+            ->delete(route('departments.destroy', $department))
+            ->assertRedirect(route('departments.index', ['branch_id' => $this->branch->id]))
             ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('departments', ['id' => $department->id]);
+    }
+
+    #[Test]
+    public function super_admin_cannot_delete_department_with_subdivisions(): void
+    {
+        $department = Department::factory()->create(['branch_id' => $this->branch->id]);
+        $department->subdivisions()->create(['name' => 'Управление', 'code' => 'MGMT-1']);
+
+        $this->actingAs($this->superAdmin)
+            ->delete(route('departments.destroy', $department))
+            ->assertRedirect(route('departments.index', ['branch_id' => $this->branch->id]))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('departments', ['id' => $department->id]);
+    }
+
+    #[Test]
+    public function guest_cannot_delete_department(): void
+    {
+        $department = Department::factory()->create(['branch_id' => $this->branch->id]);
+
+        $this->delete(route('departments.destroy', $department))
+            ->assertRedirect(route('login'));
+
+        $this->assertDatabaseHas('departments', ['id' => $department->id]);
     }
 }
